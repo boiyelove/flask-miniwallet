@@ -1,0 +1,157 @@
+
+{% extends "base.html" %}
+
+{% block body %}
+<div class="container" style="margin-top:15%;">
+	<div class="row">
+		<div class="col-md-3">
+			<ul class="list-group">
+				<li class="list-group-item active">Dashboard</li>
+				<li class="list-group-item">Settings</li>
+				<li class="list-group-item">Logout</li>
+			</ul>
+		</div>
+		<div class="col-md-3"><div style="border:1px solid black; padding:5%;">
+			<p class="text-left">Balance</p>
+			<br>
+			<p class="text-right">$25,000</p>
+		</div>			<br>	<p><a href="{{ url_for('dashboard.deposit')}}">Make A deposit</a></p>
+		<p><a href="{{ url_for('dashboard.withdrawal')}}">Make a Withdrawal</a></p></div>
+		<div class="col-md-6">
+			<div class="row">
+				<div class="container">
+
+					<form action="{{ url_for('dashboard.deposit') }}" id="deposit-form" method="post">
+						<label for="amount">Enter Amount</label>
+						<input type="number" id="amount" name="amount" class="form-control col-md-6" placeholder="100">
+				
+						<br><button class="btn btn-success" 
+						type="submit">Deposit</button></form>
+					</div>
+				</div>
+			</ul>
+		</div>
+	</div>
+</div>
+
+
+<div class="modal fade" id="exampleModal" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel">
+	<div class="modal-dialog modal-dialog-centered" role="document">
+		<div class="modal-content">
+			<div class="modal-header">
+				<h5 class="modal-title">Complete Deposit</h5>
+				<button class="close" type="button" data-dismiss="modal" aria-label="Close"></button>
+			</div>
+			<div class="modal-body">
+				<p><div id="paystackEmbedContainer"></div></p>
+			</div>
+		</div>
+	</div>
+</div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://js.paystack.co/v1/inline.js"></script>
+
+
+<script>
+	$('#deposit-form').submit(function(e){
+		// console.log(e);
+		e.preventDefault();
+		if (parseInt($('#amount').val()) < 100){
+			alert('minimum Deposit is 100');
+			return false;
+		}
+		
+		$.ajax({
+			type: 'post',
+			url: '/deposit',
+			data: $('#deposit-form').serialize(),
+			success: function(data){
+				// console.log(data);
+				//if (data.status == 201){
+				$('#exampleModal').modal('show');
+				return payWithPaystack(data.email, data.amount, data.reference);
+			}
+		})
+
+
+		});
+
+	function payWithPaystack(email, amount, ref){
+		PaystackPop.setup({
+					key: 'pk_test_1074e5d86d4f6285e173787a760efc8e210172a5',
+					email: email,
+					amount: amount,
+					ref: ref,
+					container: 'paystackEmbedContainer',
+				});	
+	}
+
+	function paymentComplete(res){
+		console.log('deposit res is',res.reference);
+		$.ajax({
+			type: 'get',
+			url: '/deposit?ref=' + res.reference,
+			success: function(srvres){
+				console.log(srvres)
+			if (srvres.status ==  201) {window.location(srvres.url)}
+				else { alert('Oops! an error occured!')}
+			}
+		});
+	}
+</script>
+
+{% endblock %}
+
+function makepayment(key, email, amount, ref, callback) {
+	var handler = PaystackPop.setup({
+		key: key, // This is your public key only! 
+		email: email || 'customer@email.com', // Customers email
+		amount: amount || 5000000.00, // The amount charged, I like big money lol
+		ref: ref || 6019, // Generate a random reference number and put here",
+		metadata: { // More custom information about the transaction
+		 custom_fields: [
+			{}
+		 ]
+		},
+		callback: callback || function(response){
+		  let div = document.getElementsByTagName("div")[0] 
+		  div.innerHTML = "This was the json response reference </br />" + response.reference;
+		},
+		onClose: function(){
+		  alert('window closed');
+		}
+	});
+	// Payment Request Just Fired  
+	handler.openIframe(); 
+}
+
+
+
+
+
+
+
+
