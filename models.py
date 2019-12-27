@@ -1,3 +1,4 @@
+import logging
 import requests
 from datetime import datetime
 from flask_login import UserMixin
@@ -116,7 +117,7 @@ class User(UserMixin, db.Model):
 					reason = 'User %s Withdrawal: %s' % (self.id, self.email),
 					amount = amount * 100,
 					recipient = rcode_reply['recipient_code'])
-				print('response is', response)
+				logging.info('response is', response)
 
 				# if transfer was initiated successfully
 				if response['status']:
@@ -131,8 +132,8 @@ class User(UserMixin, db.Model):
 					trf = trf.remit_pay()
 					response =  Transfer.finalize(
 						transfer_code = response['data']['transfer_code'])
-					print('YXE response after transfer is ', response)
-					print('response status ', response['status'])
+					logging.info('YXE response after transfer is ', response)
+					logging.info('response status ', response['status'])
 				reply['status'] = response['status']
 				reply['message'] = response['message']
 			else:
@@ -216,9 +217,9 @@ class BankAccount(db.Model):
 			bank_code="044",
 			)
 		reply={'status': response['status'], 'message': response['message']}
-		print('response is ', response)
-		print('response status is ', response['status'])
-		print('response message is ', response['message'])
+		logging.info('response is ', response)
+		logging.info('response status is ', response['status'])
+		logging.info('response message is ', response['message'])
 		reply['message'] = response['message']
 		if response['status']:
 			self.recipient_code = response['data']['recipient_code']
@@ -261,17 +262,17 @@ class OTPLog(db.Model):
 	@classmethod
 	def disable_otp(cls, code=None):
 		if code and type(code) is not int: raise TypeError('OTP code must be in Integer format')
-		print('code is', code)
-		print('code string is', str(code))
-		print('code formated is ', "%s" % code )
+		logging.info('code is', code)
+		logging.info('code string is', str(code))
+		logging.info('code formated is ', "%s" % code )
 		url = url = 'https://api.paystack.co/transfer/disable_otp'
 		if code:
 			code = {'otp': "%s" % code}
 			url = 'https://api.paystack.co/transfer/disable_otp_finalize'
 		resp = requests.post(url, json=code, headers={'Authorization': 'Bearer ' +  paystack_secret_key,
 			'Content-Type': 'application/json'})
-		print('text is', resp.text)
-		print('status_code is', resp.status_code)
+		logging.info('text is', resp.text)
+		logging.info('status_code is', resp.status_code)
 		if resp.status_code == 200:
 			resp = resp.json()
 			mode = OTPLog.get_mode()
