@@ -60,9 +60,9 @@ def deposit():
 		refcode = request.args.get('ref', None)
 		if refcode:
 			trlog = TransactionLog.query.filter_by(code=refcode).first()
-			logging.info('trlog is', trlog)
-			logging.info('type trlog is', type(trlog))
-			logging.info('trlog marked is', trlog['marked'])
+			logging.error('trlog is', trlog)
+			logging.error('type trlog is', type(trlog))
+			logging.error('trlog marked is', trlog['marked'])
 			if trlog:
 				if not trlog.marked:
 					trlog = trlog.remit_pay()
@@ -78,7 +78,7 @@ def deposit():
 			amount = int(form['amount'])
 			if amount > 100:
 				ref = init_transaction((amount * 100), current_user.email)
-				# logging.info('paystack response is', response)
+				logging.error('paystack response is', response)
 				
 				data['reference'] = ref
 				data['amount'] = amount * 100
@@ -113,8 +113,8 @@ def bank_settings():
 	bnk_acc = current_user.get_bank_account()
 	form = BankForm(request.form)	
 	if request.method == 'GET' and bnk_acc:
-		logging.info('bank id on GET is', bnk_acc.bank_id)
-		logging.info('type(bnk_acc) is', type(bnk_acc))
+		logging.error('bank id on GET is', bnk_acc.bank_id)
+		logging.error('type(bnk_acc) is', type(bnk_acc))
 		
 		form = BankForm(bank = bnk_acc.bank_id,
 			account_name = bnk_acc.account_name,
@@ -145,12 +145,12 @@ def bank_settings():
 @dbp.route('/webhook/' + srk, methods=['POST'])
 def webhook():
 	if verify_hook(request):
-		logging.info('passed hooktest')
+		logging.error('passed hooktest')
 		data = request.json
 		resp_data = data['data']
-		logging.info('data is', data)
+		logging.error('data is', data)
 		if data['event'] == 'transfer.success':
-			logging.info('passed transfer success')
+			logging.error('passed transfer success')
 			trlog = TransactionLog.query.filter_by(code=resp_data['transfer_code']).first()
 			if trlog is not None:
 				trlog = trlog.remit_pay()
@@ -177,7 +177,7 @@ def otp_setting():
 	otplogs = OTPLog.query.order_by(OTPLog.timestamp.desc()).paginate(1,10,error_out=False)
 	mode = OTPLog.get_mode()
 	if request.method == 'POST':
-		logging.info('submit_button is', request.form['submit_button'])
+		logging.error('submit_button is', request.form['submit_button'])
 		if request.form['submit_button'] == 'disable-otp':
 			message = OTPLog.disable_otp()
 			flash(message)

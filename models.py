@@ -117,7 +117,7 @@ class User(UserMixin, db.Model):
 					reason = 'User %s Withdrawal: %s' % (self.id, self.email),
 					amount = amount * 100,
 					recipient = rcode_reply['recipient_code'])
-				logging.info('response is', response)
+				logging.error('response is', response)
 
 				# if transfer was initiated successfully
 				if response['status']:
@@ -132,8 +132,8 @@ class User(UserMixin, db.Model):
 					trf = trf.remit_pay()
 					response =  Transfer.finalize(
 						transfer_code = response['data']['transfer_code'])
-					logging.info('YXE response after transfer is ', response)
-					logging.info('response status ', response['status'])
+					logging.error('YXE response after transfer is ', response)
+					logging.error('response status ', response['status'])
 				reply['status'] = response['status']
 				reply['message'] = response['message']
 			else:
@@ -170,8 +170,8 @@ class TransactionLog(db.Model):
 			user = User.query.get(self.user_id)
 			if self.transaction_type == True:			
 				user.balance = user.balance + self.get_amount()
-			# if self.transaction_type == False:		
-				# user.balance = user.balance - self.get_amount()
+			elif self.transaction_type == False:	
+				user.balance = user.balance - self.get_amount()
 			self.marked = True
 			db.session.commit()
 		return db.session.refresh(self)
@@ -217,9 +217,9 @@ class BankAccount(db.Model):
 			bank_code="044",
 			)
 		reply={'status': response['status'], 'message': response['message']}
-		logging.info('response is ', response)
-		logging.info('response status is ', response['status'])
-		logging.info('response message is ', response['message'])
+		logging.error('response is ', response)
+		logging.error('response status is ', response['status'])
+		logging.error('response message is ', response['message'])
 		reply['message'] = response['message']
 		if response['status']:
 			self.recipient_code = response['data']['recipient_code']
@@ -262,17 +262,17 @@ class OTPLog(db.Model):
 	@classmethod
 	def disable_otp(cls, code=None):
 		if code and type(code) is not int: raise TypeError('OTP code must be in Integer format')
-		logging.info('code is', code)
-		logging.info('code string is', str(code))
-		logging.info('code formated is ', "%s" % code )
+		logging.error('code is', code)
+		logging.error('code string is', str(code))
+		logging.error('code formated is ', "%s" % code )
 		url = url = 'https://api.paystack.co/transfer/disable_otp'
 		if code:
 			code = {'otp': "%s" % code}
 			url = 'https://api.paystack.co/transfer/disable_otp_finalize'
 		resp = requests.post(url, json=code, headers={'Authorization': 'Bearer ' +  paystack_secret_key,
 			'Content-Type': 'application/json'})
-		logging.info('text is', resp.text)
-		logging.info('status_code is', resp.status_code)
+		logging.error('text is', resp.text)
+		logging.error('status_code is', resp.status_code)
 		if resp.status_code == 200:
 			resp = resp.json()
 			mode = OTPLog.get_mode()

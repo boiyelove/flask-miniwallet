@@ -145,7 +145,21 @@ $('body').bind('change', function(){
 
 $('body').bind('change', function(){
 		$('#exampleModal').bind('hide.bs.modal', function(event){
+			if  (refcode != ''){
+				axiom.get(
+						"{{ url_for(dashboard.deposit)}}/?ref=" + ref_code					
+					).then(function(response){
+						console.log(response)
+					}).catch(function(response){
+						console.log(response)
+					})
+			}
 			console.log(event);
+			if (confirm('Are you sure you want to leave this page?')) {
+			    location.reload();
+			} else {
+			    // Do nothing!
+			}
 			return event.PreventDefault();
 
 		});
