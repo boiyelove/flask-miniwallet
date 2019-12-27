@@ -41,22 +41,22 @@ def init_transaction(amount, email):
     return trl.code #(or false)
 
 def verify_hook(request):
-  print('remmote address is', request.remote_addr)
-  print('remmote address is', request.remote_addr, file=sys.stdout)
-  if request.remote_addr in ip_whitelist:  
-    json_body = request.json
-    srk = paystack_secret_key
-    computed_hmac = hmac.new(
-      bytes(srk, 'utf-8'),
-      str.encode(request.data.decode('utf-8')),
-        digestmod=hashlib.sha512
-        ).hexdigest()
-    print('computed_hmac is', computed_hmac, file=sys.stdout)
-    print('computed_hmac is', computed_hmac)
-    print('request.headers is', request.headers)
-    if ('HTTP_X_PAYSTACK_SIGNATURE' in request.headers) or ('HTTP-X-PAYSTACK-SIGNATURE' in request.headers ):
-      if (request.headers['HTTP_X_PAYSTACK_SIGNATURE'] == computed_hmac) or ( request.headers['HTTP-X-PAYSTACK-SIGNATURE']  == computed_hmac):
-        print('passed hmac test')
-        return True
-  return False
+  # print('remmote address is', request.remote_addr)
+  # print('remmote address is', request.remote_addr, file=sys.stdout)
+  # if request.remote_addr in ip_whitelist:  
+  #   json_body = request.json
+  #   srk = paystack_secret_key
+  #   computed_hmac = hmac.new(
+  #     bytes(srk, 'utf-8'),
+  #     str.encode(request.data.decode('utf-8')),
+  #       digestmod=hashlib.sha512
+  #       ).hexdigest()
+  #   print('computed_hmac is', computed_hmac, file=sys.stdout)
+  #   print('computed_hmac is', computed_hmac)
+  #   print('request.headers is', request.headers)
+  #   if ('HTTP_X_PAYSTACK_SIGNATURE' in request.headers) or ('HTTP-X-PAYSTACK-SIGNATURE' in request.headers ):
+  #     if (request.headers['HTTP_X_PAYSTACK_SIGNATURE'] == computed_hmac) or ( request.headers['HTTP-X-PAYSTACK-SIGNATURE']  == computed_hmac):
+  #       print('passed hmac test')
+  #       return True
+  # return False
   return True
