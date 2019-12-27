@@ -1,5 +1,6 @@
 import sys
 import json
+import logging
 from flask import render_template, abort, request, Response, redirect, flash, url_for, g, Markup
 from flask_login import login_required, current_user
 import miniwalletapp as app
@@ -59,9 +60,9 @@ def deposit():
 		refcode = request.args.get('ref', None)
 		if refcode:
 			trlog = TransactionLog.query.filter_by(code=refcode).first()
-			app.logger.info('trlog is', trlog)
-			app.logger.info('type trlog is', type(trlog))
-			app.logger.info('trlog marked is', trlog['marked'])
+			logging.info('trlog is', trlog)
+			logging.info('type trlog is', type(trlog))
+			logging.info('trlog marked is', trlog['marked'])
 			if trlog:
 				if not trlog.marked:
 					trlog = trlog.remit_pay()
@@ -77,7 +78,7 @@ def deposit():
 			amount = int(form['amount'])
 			if amount > 100:
 				ref = init_transaction((amount * 100), current_user.email)
-				# app.logger.info('paystack response is', response)
+				# logging.info('paystack response is', response)
 				
 				data['reference'] = ref
 				data['amount'] = amount * 100
@@ -112,8 +113,8 @@ def bank_settings():
 	bnk_acc = current_user.get_bank_account()
 	form = BankForm(request.form)	
 	if request.method == 'GET' and bnk_acc:
-		app.logger.info('bank id on GET is', bnk_acc.bank_id)
-		app.logger.info('type(bnk_acc) is', type(bnk_acc))
+		logging.info('bank id on GET is', bnk_acc.bank_id)
+		logging.info('type(bnk_acc) is', type(bnk_acc))
 		
 		form = BankForm(bank = bnk_acc.bank_id,
 			account_name = bnk_acc.account_name,
@@ -144,12 +145,12 @@ def bank_settings():
 @dbp.route('/webhook/' + srk, methods=['POST'])
 def webhook():
 	if verify_hook(request):
-		app.logger.info('passed hooktest')
+		logging.info('passed hooktest')
 		data = request.json
 		resp_data = data['data']
-		app.logger.info('data is', data)
+		logging.info('data is', data)
 		if data['event'] == 'transfer.success':
-			app.logger.info('passed transfer success')
+			logging.info('passed transfer success')
 			trlog = TransactionLog.query.filter_by(code=resp_data['transfer_code']).first()
 			if trlog is not None:
 				trlog = trlog.remit_pay()
@@ -176,7 +177,7 @@ def otp_setting():
 	otplogs = OTPLog.query.order_by(OTPLog.timestamp.desc()).paginate(1,10,error_out=False)
 	mode = OTPLog.get_mode()
 	if request.method == 'POST':
-		app.logger.info('submit_button is', request.form['submit_button'])
+		logging.info('submit_button is', request.form['submit_button'])
 		if request.form['submit_button'] == 'disable-otp':
 			message = OTPLog.disable_otp()
 			flash(message)

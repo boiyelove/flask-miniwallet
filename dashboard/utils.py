@@ -2,7 +2,7 @@ import sys
 import json
 import hmac
 import hashlib
-from miniwalletapp import logger
+# import miniwalletapp as app
 from flask_login import current_user
 from random import randint
 from paystackapi.paystack import Paystack, Transfer
@@ -41,8 +41,8 @@ def init_transaction(amount, email):
     return trl.code #(or false)
 
 def verify_hook(request):
-  logger.info('remmote address is', request.remote_addr)
-  logger.info('remmote address is', request.remote_addr, file=sys.stdout)
+  logging.info('remmote address is', request.remote_addr)
+  logging.info('remmote address is', request.remote_addr, file=sys.stdout)
   if request.remote_addr in ip_whitelist:  
     json_body = request.json
     srk = paystack_secret_key
@@ -51,12 +51,13 @@ def verify_hook(request):
       str.encode(request.data.decode('utf-8')),
         digestmod=hashlib.sha512
         ).hexdigest()
-    logger.info('computed_hmac is', computed_hmac, file=sys.stdout)
-    logger.info('computed_hmac is', computed_hmac)
-    logger.info('request.headers is', request.headers)
+    logging.info('computed_hmac is', computed_hmac, file=sys.stdout)
+    logging.info('computed_hmac is', computed_hmac)
+    logging.info('request.headers is', request.headers)
     if ('HTTP_X_PAYSTACK_SIGNATURE' in request.headers) or ('HTTP-X-PAYSTACK-SIGNATURE' in request.headers ):
       if (request.headers['HTTP_X_PAYSTACK_SIGNATURE'] == computed_hmac) or ( request.headers['HTTP-X-PAYSTACK-SIGNATURE']  == computed_hmac):
         logger.info('passed hmac test')
         return True
+  logging.info('failed hmac test')
   return False
-  return True
+  # return True
