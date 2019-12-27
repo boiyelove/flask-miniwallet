@@ -4,18 +4,12 @@
 {% block body %}
 	<div class="container" style="margin-top:15%;">
 		<div class="row">
+		{% include "sidenav.html" %}
+
+		{% block dashbody %}
 			<div class="col-md-3">
-				<ul class="list-group">
-  <li class="list-group-item active">Dashboard</li>
-  <li class="list-group-item">Settings</li>
-  <li class="list-group-item">Logout</li>
-</ul>
-			</div>
-			<div class="col-md-3"><div style="border:1px solid black; padding:5%;">
-				<p class="text-left">Balance</p>
-				<br>
-				<p class="text-right">{{ current_user.balance }}</p>
-			</div>			<br>	<p><a href="{{ url_for('dashboard.deposit')}}">Make A deposit</a></p>
+
+			{% include "dash_balance.html" %}		<br>	<p><a href="{{ url_for('dashboard.deposit')}}">Make A deposit</a></p>
 				<p><a href="{{ url_for('dashboard.withdrawal')}}">Make a Withdrawal</a></p></div>
 			<div class="col-md-6">
 				<ul class="list-group">
@@ -27,6 +21,7 @@
   <li class="list-group-item">Vestibulum at eros</li>
 </ul>
 			</div>
+			{% endblock %}
 		</div>
 	</div>
 

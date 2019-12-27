@@ -1,0 +1,72 @@
+{% extends "dashboard.html" %}
+
+
+	{% block dashbody %}
+		<div class="col-md-4">	
+				<div class="container">
+					<div class="row">
+					<form action="{{url_for('dashboard.bank_settings')}}" method="post" style="width:98%;">
+
+						<div class="row">
+
+							<label for="banks">
+							{% for error in form.bank.errors %}
+							    {{ error }}  
+							    <br>
+							{% endfor %}
+							{{ form.bank(class_="form-control")}}
+
+							</label>
+						</div>
+						<div class="row" style="margin-top:5%;">
+
+							<label for="account_name">Account Name</label>
+						{% for error in form.account_name.errors %}
+							    {{ error }} 
+							    <br> 
+							{% endfor %}
+							<input type="text" class="form-control" name="account_name" id="account_name" value="{{ form.account_name.data }}">
+						</div>
+						<div class="row" style="margin-top:5%;">
+
+							<label for="account_number">
+								Account Number
+							</label>
+							{% for error in form.account_number.errors %}
+							    {{ error }}  
+							    <br>
+							{% endfor %}
+							<input type="text" class="form-control" id="account_number" name="account_number" value="{{ form.account_number.data }}">
+						</div>
+						
+						{{ form.csrf_token }}
+
+						<div class="form-row"  style="margin-top:5%;">
+							<button class="btn btn-primary col-md-6 ml-auto">Add Account Details</button>
+						</div>
+
+					</form>
+
+				</div>
+
+
+
+				</div>
+		</div>
+
+			<div class="col-md-5">
+				<ul class="list-group">
+
+  <li class="list-group-item">Cras justo odio</li>
+  <li class="list-group-item">Dapibus ac facilisis in</li>
+  <li class="list-group-item">Morbi leo risus</li>
+  <li class="list-group-item">Porta ac consectetur ac</li>
+  <li class="list-group-item">Vestibulum at eros</li>
+</ul>
+			</div>
+
+	{% endblock %}
+
+
+
+

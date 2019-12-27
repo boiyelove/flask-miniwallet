@@ -1,0 +1,50 @@
+{% extends "dashboard.html" %}
+	{% block dashbody %}
+		<div class="col-md-6">	
+				<div class="container">
+
+					<div class="row">
+					<form action="{{url_for('dashboard.account_settings')}}" method="post" style="width:80%;">
+
+						<div class="row">
+							<label for="password">
+								Current Password
+							</label>
+							<input type="text" class="form-control" name="current_password" id="current_password" placeholder="**********">
+						</div>
+
+						<br>
+
+						<hr>
+
+						<div class="row">
+							<label for="password">
+								New Password
+							</label>
+							<input type="text" class="form-control" name="password" id="password" placeholder="**********">
+						</div>
+
+						<div class="row">
+							<label for="password_again">
+								New Password Again
+							</label>
+							<input type="text" class="form-control" name="password_again" id="password_again" placeholder="**********">
+						</div>
+
+						<div class="form-row"  style="margin-top:5%;">
+							<button class="btn btn-primary col-md-6 ml-auto">Change Password</button>
+						</div>
+
+					</form>
+
+				</div>
+
+
+
+				</div>
+		</div>
+
+
+
+
+{% endblock %}

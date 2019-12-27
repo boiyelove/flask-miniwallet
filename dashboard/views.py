@@ -1,21 +1,22 @@
+import sys
 import json
-from flask import render_template, abort, request, session, Response, redirect
-from flask_login import login_required
+from flask import render_template, abort, request, Response, redirect, flash, url_for, g, Markup
+from flask_login import login_required, current_user
 import miniwalletapp as app
+from miniwalletapp.models import User, TransactionLog, BankAccount
 
-from .utils import init_transaction, paystack_secret_key as srk
+from .utils import init_transaction, paystack_secret_key as srk, verify_hook
+from .forms import BankForm
 from . import dashboard as dbp
+from ..models import BankAccount, Bank, OTPLog
 
-User = app.models.User
 login_manager = app.login_manager
 data = None
 
 @login_manager.user_loader
 def load_user(user_id):
 	try: 
-		session['xid'] 
 		user = User.query.filter(User.id == int(user_id)).first()
-		session['xid'] = user.id
 		return user
 	except:
 		return None
@@ -24,50 +25,66 @@ def load_user(user_id):
 @dbp.route('/dashboard', methods=['GET'])
 @login_required
 def dashboard(*args, **kwargs):
-	print('session guy is', session['xid'])
 	return render_template('dashboard.html', title="Dashboard")
 
 
 
-@dbp.route('/withdraw')
+@dbp.route('/withdraw', methods=['GET', 'POST'])
 @login_required
 def withdrawal():
-	# user = User.query.filter_by(id = user_id)
-	# if request.method == 'POST':
-	# 	amount = int(request.form)
-	# 	user.withdraw(amount)
+	if current_user.validate_bank_account():
+		if request.method == 'POST':
+			amount = int(request.form['amount'])
+			if amount is not None and amount > 100:
+				if current_user.balance >  amount:
+					withdrawal = current_user.withdraw(amount)
+					if withdrawal['status']:
+						flash('Your withdrawal was successful, Your acocunt will be credited shortly')
+					else:
+						flash(withdrawal['message'])
+	else:
+		message = Markup('<a href="' + url_for('dashboard.bank_settings') + '">Please, provide bank account details before continuing to withdrawals</a>')
+		flash(message)
+
+
+
 	return render_template('withdrawal.html', title="withdraw")
 
 
 @dbp.route('/deposit', methods=['GET', 'POST'])
 @login_required
 def deposit():
-	data = None
-	if (request.method == 'POST'):
+	data = {}
+	if request.method == 'GET':
 		refcode = request.args.get('ref', None)
 		if refcode:
-			trlog = TransactionLog.query.filter_by(code=refcode)
-			if not trlog.marked:
-				trlog = trlog.remit_pay()
-			if trlog.marked:
-				flash("You deposit has been completed successfully")
-				return redirect(url_for('dashboard.dashboard'))
-		else:
-
-			amount = int(request.form['amount'])
-			if amount > 100:
-				user = User.query.get(session['xid'])
-				response = init_transaction(amount, user.email)
-				print('paystack response is', response)
-				if response['status']:
-					data = response['data']
-					data['amount'] = amount
-					data['email'] = user.email 
-				return Response(json.dumps(data), mimetype='application/json', status=201)
+			trlog = TransactionLog.query.filter_by(code=refcode).first()
+			print('trlog is', trlog)
+			print('type trlog is', type(trlog))
+			print('trlog marked is', trlog['marked'])
+			if trlog:
+				if not trlog.marked:
+					trlog = trlog.remit_pay()
+				if trlog.marked:
+					flash("You deposit has been completed successfully")
+					data['url'] = url_for('dashboard.dashboard')
+					return Response(json.dumps(data), mimetype='application/json', status=201)
 			else:
-				return Response(json.dumps(data), mimetype='application/json', status=406)
-
-
+				flash("Opps! something went wrong with your transaction reference")
+	elif (request.method == 'POST'):
+		form = request.get_json()
+		if form:
+			amount = int(form['amount'])
+			if amount > 100:
+				ref = init_transaction((amount * 100), current_user.email)
+				# print('paystack response is', response)
+				
+				data['reference'] = ref
+				data['amount'] = amount * 100
+				data['email'] = current_user.email 
+				return Response(json.dumps(data), mimetype='application/json', status=201)
+		else:
+			return Response(json.dumps(data), mimetype='application/json', status=406)
 
 
 
@@ -89,145 +106,92 @@ def account_settings():
 
 
 
-@dbp.route('/settings/bank_account')
+@dbp.route('/settings/bank_account', methods=['GET', 'POST'])
 @login_required
 def bank_settings():
-			
-
-	return render_template("bank_settings.html", title="Bank Accounts", data=data)
-
-
-
-@dbp.route('/webhook/' + srk)
-def webhook():
-	ip_whitelist = ['52.31.139.75', '52.49.173.169', '52.214.14.220']
-	if request.method == 'POST':
-		if request.remote_addr in ip_whitelist:  
-			data = json.loads(request.response)
-			trf = TransactionLog.query.filter_by(code=data.data['reference'])
-			if data['event'] == 'charge.success':
-				data = data['data']
-				deposit = Transaction.query.filter_by(refcode = data['reference'])
-				if not deposit.marked:
-					deposit.user.balance +=  (data['amount'] / 100)
-					deposit.user.save()
-					deposit.marked = True
-					deposit.save()
+	bnk_acc = current_user.get_bank_account()
+	form = BankForm(request.form)	
+	if request.method == 'GET' and bnk_acc:
+		print('bank id on GET is', bnk_acc.bank_id)
+		print('type(bnk_acc) is', type(bnk_acc))
+		
+		form = BankForm(bank = bnk_acc.bank_id,
+			account_name = bnk_acc.account_name,
+			account_number = bnk_acc.account_number)
+		form.bank.data = bnk_acc.bank_id
 	
-			elif data['event'] == 'transfer.success':
-				Transaction.marked = True
-				# if failed, refund the money
-		return 200
-	else:
-		return abort(404)
+	if request.method == 'POST':
+		if form.validate_on_submit():
+			bank = Bank.query.filter_by(id=form.bank.data).first()
+			uid = current_user.get_id()
+			if bnk_acc is not None:
+				bnk_acc.bank_id = form.bank.data
+				bnk_acc.account_name = form.account_name.data
+				bnk_acc.account_number = (form.account_number.data).strip()
+				flash("Your bank account details have been updated successfully")
+			else:
+				bnk_acc = BankAccount(bank_id = form.bank.data,
+					account_name = form.account_name.data,
+					account_number = form.account_number.data,
+					user_id = uid )
+				app.db.session.add(bnk_acc)
+				flash("Your bank account details have been save successfully")
+			app.db.session.commit()
+	return render_template("bank_settings.html", title="Bank Accounts", data=data, form=form)
 
 
-'''
-Transaction Successful
-{  
-   "event":"charge.success",
-   "data":{  
-      "id":302961,
-      "domain":"live",
-      "status":"success",
-      "reference":"qTPrJoy9Bx",
-      "amount":10000,
-      "message":null,
-      "gateway_response":"Approved by Financial Institution",
-      "paid_at":"2016-09-30T21:10:19.000Z",
-      "created_at":"2016-09-30T21:09:56.000Z",
-      "channel":"card",
-      "currency":"NGN",
-      "ip_address":"41.242.49.37",
-      "metadata":0,
-      "log":{  
-         "time_spent":16,
-         "attempts":1,
-         "authentication":"pin",
-         "errors":0,
-         "success":false,
-         "mobile":false,
-         "input":[  
 
-         ],
-         "channel":null,
-         "history":[  
-            {  
-               "type":"input",
-               "message":"Filled these fields: card number, card expiry, card cvv",
-               "time":15
-            },
-            {  
-               "type":"action",
-               "message":"Attempted to pay",
-               "time":15
-            },
-            {  
-               "type":"auth",
-               "message":"Authentication Required: pin",
-               "time":16
-            }
-         ]
-      },
-      "fees":null,
-      "customer":{  
-         "id":68324,
-         "first_name":"BoJack",
-         "last_name":"Horseman",
-         "email":"bojack@horseman.com",
-         "customer_code":"CUS_qo38as2hpsgk2r0",
-         "phone":null,
-         "metadata":null,
-         "risk_action":"default"
-      },
-      "authorization":{  
-         "authorization_code":"AUTH_f5rnfq9p",
-         "bin":"539999",
-         "last4":"8877",
-         "exp_month":"08",
-         "exp_year":"2020",
-         "card_type":"mastercard DEBIT",
-         "bank":"Guaranty Trust Bank",
-         "country_code":"NG",
-         "brand":"mastercard"
-      },
-      "plan":{}
-   }
-}		
+@dbp.route('/webhook/' + srk, methods=['POST'])
+def webhook():
+	if verify_hook(request):
+		print('passed hooktest')
+		data = request.json
+		resp_data = data['data']
+		print('data is', data)
+		if data['event'] == 'transfer.success':
+			print('passed transfer success')
+			trlog = TransactionLog.query.filter_by(code=resp_data['transfer_code']).first()
+			if trlog is not None:
+				trlog = trlog.remit_pay()
+			return Response({}, status=200)
+		elif data['event'] == 'transfer.failed':
+			trlog = TransactionLog.query.filter_by(code=resp_data['transfer_code']).first()
+			if trlog is not None:
+				trlog = trlog.reverse_pay()
+			return Response({}, status=200)
 
-'''
+		elif data['event'] == 'charge.success':
+			trlog = TransactionLog.query.filter_by(code=resp_data['data']['reference']).first()
+			if trlog is not None:
+				trlog.amount = data['data']['amount']
+				trlog = trlog.remit_pay()
 
-'''
-Withdrawal Successful
-{
-  event: "transfer.success",
-  data: {
-    domain: "live",
-    amount: 10000,
-    currency: "NGN",
-    source: "balance",
-    source_details: null,
-    reason: "Bless you",
-    recipient: {
-      domain: "live",
-      type: "nuban",
-      currency: "NGN",
-      name: "Someone",
-      details: {
-        account_number: "0123456789",
-        account_name: null,
-        bank_code: "058",
-        bank_name: "Guaranty Trust Bank"
-      },
-      description: null,
-      metadata: null,
-      recipient_code: "RCP_xoosxcjojnvronx",
-      active: true
-    },
-    status: "success",
-    transfer_code: "TRF_zy6w214r4aw9971",
-    transferred_at: "2017-03-25T17:51:24.000Z",
-    created_at: "2017-03-25T17:48:54.000Z"
-  }
-}
-'''
+			return Response({}, status=200)
+		# return Response({}, status=200)
+	return Response({}, status=400) #non 200
+
+
+@dbp.route('/otp_setting/', methods=['GET', 'POST'])
+def otp_setting():
+	otplogs = OTPLog.query.order_by(OTPLog.timestamp.desc()).paginate(1,10,error_out=False)
+	mode = OTPLog.get_mode()
+	if request.method == 'POST':
+		print('submit_button is', request.form['submit_button'])
+		if request.form['submit_button'] == 'disable-otp':
+			message = OTPLog.disable_otp()
+			flash(message)
+
+		elif request.form['submit_button'] == 'enable-otp':
+			message = OTPLog.enable_otp()
+			flash(message)
+			mode = OTPLog.get_mode()
+
+		elif request.form['submit_button'] == 'submit-otp':
+			if int(request.form['otp-code']):
+				message = OTPLog.disable_otp(code = int(request.form['otp-code']))
+				flash(message)
+				mode = OTPLog.get_mode()
+
+
+	
+	return render_template("otp_setting.html", otpstatus = mode, title="OTP Settings", otplogs = otplogs)

@@ -1,0 +1,75 @@
+{% extends "dashboard.html" %}
+
+
+{% block dashbody %}
+<div class="col-md-4">	
+	<div class="container">
+		<div class="row">
+			<form action="{{url_for('dashboard.otp_setting')}}" method="post" style="width:98%; margin-top:3%;">
+				<div class="row">
+					<div class="col-md-6">
+						{% if otpstatus  %}
+						<span class="badge badge-danger">OTP Enabled</span>
+
+						{% else %}
+						<span class="badge badge-success">OTP Disabled</span>
+						{% endif %}
+
+					</div>
+					<div class="col-md-6">
+						{% if otpstatus  %}
+
+
+		<button class="btn btn-primary ml-auto btn-block" name="submit_button" placeholder="Enter OTP Here"
+						 value='disable-otp'>Disable OTP</button>
+
+						{% else %}
+
+				<button class="btn btn-danger ml-auto btn-block" name="submit_button" placeholder="Enter OTP Here"
+						 value='enable-otp'>Enable OTP</button>
+
+
+						{% endif %}
+					</div>
+
+
+				</div>
+			</form>
+			<hr width="80%" align="right" style="margin-top:14%; margin-bottom:9%;"class="mr-auto">
+			<form action="{{url_for('dashboard.otp_setting')}}" method="post" style="width:98%;">
+				<div class="row">
+					<label for="otp" class="text-right">								OTP
+					</label>
+					<input type="text" class="form-control" name='otp-code'  required>
+				</div>
+
+
+				<div class="form-row"  style="margin-top:5%;">
+
+
+
+					<button class="btn btn-primary col-md-4 ml-auto" name="submit_button" placeholder="Enter OTP Here" value='submit-otp'>Submit OTP</button>
+				</div>
+
+			</form>
+
+		</div>
+
+
+
+	</div>
+</div>
+
+<div class="col-md-5">
+	<ul class="list-group">
+		{% for item in otplogs.items %}
+		<li class="list-group-item">{{ item.message }}</li>
+		{% endfor %}
+	</ul>
+</div>
+
+{% endblock %}
+
+
+
+

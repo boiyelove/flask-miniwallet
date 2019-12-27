@@ -16,6 +16,9 @@ login_manager.login_message = "You must be logged in to view this page"
 login_manager.login_message_category = "info"
 db = SQLAlchemy()
 
+import logging
+logger = logging.basicConfig(level=logging.DEBUG)
+
 def create_app(config_name):
 	app = Flask(__name__, template_folder='templates')
 	app.config.from_object(app_config[config_name])
@@ -26,6 +29,8 @@ def create_app(config_name):
 	db.init_app(app)
 	migrate = Migrate(app, db)
 
+	# with app.app_context():
+	# 	db.create_all()
 	Bootstrap(app)
 
 	from . import models

@@ -35,7 +35,6 @@ def login():
 		user = User.query.filter_by(email=form.email.data).first()
 		if user is not None and user.verify_password(form.password.data):
 			login_user(user)
-			session['xid'] = user.id
 			return redirect(url_for('dashboard.dashboard'))
 		else:
 			flash("Invalid email or password")
