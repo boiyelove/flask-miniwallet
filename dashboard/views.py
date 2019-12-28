@@ -115,9 +115,7 @@ def bank_settings():
 	bnk_acc = current_user.get_bank_account()
 	form = BankForm(request.form)	
 	if request.method == 'GET' and bnk_acc:
-		logging.error('bank id on GET is', bnk_acc.bank_id)
-		logging.error('type(bnk_acc) is', type(bnk_acc))
-		
+	
 		form = BankForm(bank = bnk_acc.bank_id,
 			account_name = bnk_acc.account_name,
 			account_number = bnk_acc.account_number)
