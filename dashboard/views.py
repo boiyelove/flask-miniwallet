@@ -57,12 +57,13 @@ def withdrawal():
 def deposit():
 	data = {}
 	if request.method == 'GET':
+		logging.error('deposit get request')
 		refcode = request.args.get('ref', None)
 		if refcode:
 			trlog = TransactionLog.query.filter_by(code=refcode).first()
 			logging.error('trlog is', trlog)
 			logging.error('type trlog is', type(trlog))
-			logging.error('trlog marked is', trlog['marked'])
+			logging.error('trlog marked is', trlog.marked)
 			if trlog:
 				if not trlog.marked:
 					trlog = trlog.remit_pay()
@@ -73,12 +74,13 @@ def deposit():
 			else:
 				flash("Opps! something went wrong with your transaction reference")
 	elif (request.method == 'POST'):
-		form = request.get_json()
+
+		form = request.get_json(force=True) 
 		if form:
 			amount = int(form['amount'])
-			if amount > 100:
+			if amount >= 100:
 				ref = init_transaction((amount * 100), current_user.email)
-				logging.error('paystack response is', response)
+				
 				
 				data['reference'] = ref
 				data['amount'] = amount * 100

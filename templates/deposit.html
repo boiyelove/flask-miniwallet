@@ -19,7 +19,7 @@
 					  <div class="input-group-prepend">
 					    <span class="input-group-text" id="basic-addon1"> &#8358; </span>
 					  </div>
-						<input type="number" id="amount" name="amount" class="form-control col-md-6" placeholder="100 Minimum" aria-label="amount" aria-describedby="basic-addon1">
+						<input type="number" id="amount" name="amount" class="form-control col-md-6" placeholder="100 Minimum" aria-label="amount" aria-describedby="basic-addon1" required>
 					</div>
 
 
@@ -69,8 +69,9 @@
 {% endblock %}
 
 {% block extra_js %}
-<script src="https://js.paystack.co/v1/inline.js"></script>
 <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+<script src="https://js.paystack.co/v1/inline.js"></script>
+
 
 
 
@@ -78,25 +79,35 @@
 	var refcode = '';
 	document.getElementById('deposit-form').addEventListener('submit', function(event){
 		event.preventDefault();
-		var amount = parseInt(document.getElementById('amount').value);
+		var amount = parseInt(document.getElementById('amount').value, 10);
+		console.log('amount is ', amount)
+		console.log('typeof amount is ', typeof(amount))
+		console.log('amount >= 100 is ', amount >= 100)
+		console.log('typeof(amount) == number is ', typeof(amount) == 'number')
+		if ((typeof(amount) == 'number') && (amount >= 100)){
+			axios.post('/deposit',
+					{'amount': amount}
+					).then(function(response){
+						console.log('response is', response);
+					
+					//if (data.status == 201){
+						$('#exampleModal').modal('show');
+						// document.getElementById('exampleModal').modal('show')
+						return payWithPaystack(response.data);
+					})
+					.catch(function (error){
+						console.log('error is', error);
+					});
 
-		if (parseInt(amount) < 100){
+		} else {
+
 			alert('minimum Deposit is 100');
 			return false;
+
 		}
-		axios.post('/deposit',
-				{'amount': amount}
-				).then(function(response){
-					console.log('response is', response);
-				
-				//if (data.status == 201){
-					$('#exampleModal').modal('show');
-					// document.getElementById('exampleModal').modal('show')
-					return payWithPaystack(response.data);
-				})
-				.catch(function (error){
-					console.log('error is', error);
-				})
+
+
+
 		});
 
 function payWithPaystack(data){
@@ -143,24 +154,33 @@ $('body').bind('change', function(){
 	
 	});
 
+async function verifyPayment(){
+		url = "{{ url_for('dashboard.deposit')}}?ref=" + refcode	
+		axios.get(url				
+				).then(function(response){
+					console.log(response)
+				}).catch(function(response){
+					console.log(response)
+				})
+			
+		return true
+}
+
 $('body').bind('change', function(){
 		$('#exampleModal').bind('hide.bs.modal', function(event){
-			if  (refcode != ''){
-				axiom.get(
-						"{{ url_for(dashboard.deposit)}}/?ref=" + ref_code					
-					).then(function(response){
-						console.log(response)
-					}).catch(function(response){
-						console.log(response)
-					})
-			}
+
 			console.log(event);
+			verifyPayment();
 			if (confirm('Are you sure you want to leave this page?')) {
 			    location.reload();
-			} else {
+				
+				} else {
+
+					
 			    // Do nothing!
 			}
-			return event.PreventDefault();
+			
+			return false;
 
 		});
 });
