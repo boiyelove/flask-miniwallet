@@ -164,7 +164,7 @@ def webhook():
 			return Response({}, status=200)
 
 		elif data['event'] == 'charge.success':
-			trlog = TransactionLog.query.filter_by(code=resp_data['data']['reference']).first()
+			trlog = TransactionLog.query.filter_by(code=resp_data['reference']).first()
 			if trlog is not None:
 				trlog.amount = data['data']['amount']
 				trlog = trlog.remit_pay()
