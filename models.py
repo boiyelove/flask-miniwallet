@@ -164,7 +164,7 @@ class TransactionLog(db.Model):
 				if response['data']['status'] == "success":
 					return True
 		elif self.transaction_type == True:
-			check = Transaction.verify(reference = self.code)
+			response = Transaction.verify(reference = self.code)
 			if response['status']:
 				if response['data']['status'] == "success":
 					return True
@@ -182,16 +182,18 @@ class TransactionLog(db.Model):
 				user.balance = user.balance - self.get_amount()
 				self.marked = True
 			db.session.commit()
-		return db.session.refresh(self)
+		return self
 
 	def reverse_pay(self):
 		user = User.query.get(self.user_id)
 		if self.marked == True and self.transaction_type == True:
 			user.balance = user.balance - self.get_amount()
+			self.marked = False
 		if self.marked == False and self.transaction_type == False:
 			user.balance = user.balance - self.get_amount()
+			self.marked = False
 		db.session.commit()
-		return db.session.refresh(self)
+		return self
 
 	def set_amount(self, amount):
 		self.amount = amount * 100
