@@ -5,21 +5,18 @@
 ## Setup
 
 ```
-
 pip install -r req.txt
 ```
 
-Setup Paystack Keys
+Setup Paystack Keys in [config.py configuration file](./config.py)
 [Get it here:](https://dashboard.paystack.com/#/settings/developer)
-- Change Paystack Secret Key
-- Change Paystack Public Key
+- Change Paystack Secret Key: PAYSTACK_SECRET_KEY
+- Change Paystack Public Key: PAYSTACK_PUBLIC_KEY
 
-[configuration file](./config.py)
 
 Flask setup
 
 ```
-
 FLASK_APP = run.py
 FLASK_CONFIG = development
 ```
@@ -27,7 +24,6 @@ FLASK_CONFIG = development
 Database setup
 
 ```
-
 flask db init
 flask db migrate
 flask db upgrade
@@ -36,6 +32,5 @@ flask db upgrade
 Finally run the app
 
 ```
-
 flask run
 ```
