@@ -157,22 +157,29 @@ class TransactionLog(db.Model):
 	marked = db.Column(db.Boolean, default=False)
 
 	def check_tansaction(self):
-		check = False
 		if self.transaction_type == False:
-			check = Transfer.verify(reference=self.code)
+			response = Transfer.verify(reference=self.code)
+			if response['status']:
+				if response['data']['status'] == "success":
+					return True
 		elif self.transaction_type == True:
 			check = Transaction.verify(reference = self.code)
+			if response['status']:
+				if response['data']['status'] == "success":
+					return True
 		#parse check data to give result, true, false, pending
-		return check
+		return False
 
 	def remit_pay(self):
 		if not self.marked:
 			user = User.query.get(self.user_id)
-			if self.transaction_type == True:			
-				user.balance = user.balance + self.get_amount()
+			if self.transaction_type == True:
+				if self.check_transaction():			
+					user.balance = user.balance + self.get_amount()
+					self.marked = True
 			elif self.transaction_type == False:	
 				user.balance = user.balance - self.get_amount()
-			self.marked = True
+				self.marked = True
 			db.session.commit()
 		return db.session.refresh(self)
 
@@ -214,7 +221,7 @@ class BankAccount(db.Model):
 			type="nuban",
 			name=self.account_name,
 			account_number= self.account_number,
-			bank_code="044",
+			bank_code=bnk.code,
 			)
 		reply={'status': response['status'], 'message': response['message']}
 		logging.error('response is ', response)

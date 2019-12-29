@@ -40,9 +40,10 @@ def withdrawal():
 				if current_user.balance >  amount:
 					withdrawal = current_user.withdraw(amount)
 					if withdrawal['status']:
-						flash('Your withdrawal was successful, Your acocunt will be credited shortly')
+						flash('Your withdrawal was successful, Your acccunt will be credited shortly')
 					else:
 						flash(withdrawal['message'])
+					return redirect(url_for('dashboard.dashboard'))
 	else:
 		message = Markup('<a href="' + url_for('dashboard.bank_settings') + '">Please, provide bank account details before continuing to withdrawals</a>')
 		flash(message)
