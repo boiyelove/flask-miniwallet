@@ -5,6 +5,7 @@ from flask_login import UserMixin
 from werkzeug.security import generate_password_hash, check_password_hash
 from paystackapi.paystack import Transfer
 from paystackapi.trecipient import TransferRecipient
+from paystackapi.transaction import Transaction
 from miniwalletapp import db, login_manager
 from miniwalletapp.config import paystack_secret_key
 
