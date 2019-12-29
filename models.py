@@ -157,6 +157,14 @@ class TransactionLog(db.Model):
 	code = db.Column(db.String(30), unique=True) 
 	marked = db.Column(db.Boolean, default=False)
 
+	def __repr__(self):
+		if self.transaction_type == True and self.marked:
+			return "Deposit:   &#8358 %s" % self.amount
+		elif self.transaction_type == False and self.marked:
+			return "Withdrawal:   &#8358 %s" % self.amount
+		else:
+			return self
+
 	def check_transaction(self):
 		if self.transaction_type == False:
 			response = Transfer.verify(reference=self.code)

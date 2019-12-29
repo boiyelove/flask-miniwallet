@@ -26,7 +26,10 @@ def load_user(user_id):
 @dbp.route('/dashboard', methods=['GET'])
 @login_required
 def dashboard(*args, **kwargs):
-	return render_template('dashboard.html', title="Dashboard")
+
+	trlogs = TransactionLog.query.filter_by(marked=True).order_by(TransactionLog.timestamp.desc()).paginate(1,10,error_out=False)
+	
+	return render_template('dashboard.html', title="Dashboard", trlogs = trlogs)
 
 
 
@@ -56,7 +59,9 @@ def withdrawal():
 @dbp.route('/deposit', methods=['GET', 'POST'])
 @login_required
 def deposit():
-	data = {}
+	data = {
+	'depositlogs':	TransactionLog.query.filter_by(transaction_type=True, marked=True).order_by(TransactionLog.timestamp.desc()).paginate(1,10,error_out=False)
+	}
 	if request.method == 'GET':
 		logging.error('deposit get request')
 		refcode = request.args.get('ref', None)
