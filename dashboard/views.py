@@ -60,9 +60,7 @@ def withdrawal():
 @dbp.route('/deposit', methods=['GET', 'POST'])
 @login_required
 def deposit():
-	data = {
-	'depositlogs':	TransactionLog.query.filter_by(transaction_type=True, marked=True).order_by(TransactionLog.timestamp.desc()).paginate(1,10,error_out=False)
-	}
+	data = {}
 	if request.method == 'GET':
 		logging.error('deposit get request')
 		refcode = request.args.get('ref', None)
