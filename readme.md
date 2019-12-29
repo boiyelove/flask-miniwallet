@@ -14,16 +14,16 @@ Setup Paystack Keys in [config.py configuration file](./config.py)
 - Change Paystack Public Key: PAYSTACK_PUBLIC_KEY
 
 
-Flask setup
+Flask setup from windows commandline
 
-```
+```winbatch
 FLASK_APP = run.py
 FLASK_CONFIG = development
 ```
 
 Database setup
 
-```
+```winbatch
 flask db init
 flask db migrate
 flask db upgrade
@@ -31,6 +31,6 @@ flask db upgrade
 
 Finally run the app
 
-```
+```winbatch
 flask run
 ```
