@@ -156,7 +156,7 @@ class TransactionLog(db.Model):
 	code = db.Column(db.String(30), unique=True) 
 	marked = db.Column(db.Boolean, default=False)
 
-	def check_tansaction(self):
+	def check_transaction(self):
 		if self.transaction_type == False:
 			response = Transfer.verify(reference=self.code)
 			if response['status']:
