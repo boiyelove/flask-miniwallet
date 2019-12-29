@@ -7,7 +7,7 @@ from paystackapi.paystack import Transfer
 from paystackapi.trecipient import TransferRecipient
 from paystackapi.transaction import Transaction
 from miniwalletapp import db, login_manager
-from miniwalletapp.config import paystack_secret_key
+from miniwalletapp.config import PAYSTACK_SECRET_KEY as paystack_secret_key
 
 # bankaccounts = db.Table('bankaccount',
 # 	db.Column('bankaccount_id', db.Integer, db.ForeignKey('bankaccounts.id'), primary_key=True),

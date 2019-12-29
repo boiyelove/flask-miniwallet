@@ -9,7 +9,7 @@ from random import randint
 from paystackapi.paystack import Paystack, Transfer
 from paystackapi.transaction import Transaction
 from miniwalletapp.models import User, TransactionLog, db
-from miniwalletapp.config import paystack_secret_key
+from miniwalletapp.config import PAYSTACK_SECRET_KEY as paystack_secret_key
 
 paystack = Paystack(secret_key=paystack_secret_key)
 ip_whitelist = ['52.31.139.75', '52.49.173.169', '52.214.14.220']

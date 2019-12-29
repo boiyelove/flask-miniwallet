@@ -4,9 +4,10 @@ import logging
 from flask import render_template, abort, request, Response, redirect, flash, url_for, g, Markup
 from flask_login import login_required, current_user
 import miniwalletapp as app
+from miniwalletapp.config import PAYSTACK_SECRET_KEY as srk
 from miniwalletapp.models import User, TransactionLog, BankAccount
 
-from .utils import init_transaction, paystack_secret_key as srk, verify_hook
+from .utils import init_transaction, verify_hook
 from .forms import BankForm
 from . import dashboard as dbp
 from ..models import BankAccount, Bank, OTPLog

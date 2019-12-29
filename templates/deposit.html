@@ -115,7 +115,7 @@ function payWithPaystack(data){
 	refcode = data.reference;
 	console.log(data.reference);
 	var handler = PaystackPop.setup({
-		key: 'pk_test_af15f1a5a947bf98e44d2ebaf0c83e9aae03a97c',
+		key: "{{ config.PAYSTACK_PUBLIC_KEY }}",
 		email: data.email,
 		amount: data.amount,
 		ref: data.reference,
