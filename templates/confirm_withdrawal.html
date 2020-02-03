@@ -1,0 +1,180 @@
+{% extends "dashboard.html" %}
+
+
+{% block dashbody %}
+
+{% if otp_mode %}
+<div class="col-md-9">
+
+		
+<!-- 	<div class="row">
+		
+		{% if submit_button == 'resent-otp' %}
+		<div class="col-md-3"><div class="col-md-3"><button class="btn btn-danger" href="{{ url_for('dashboard.confirm_withdrawals')}}">Cancel</button></div></div>
+		<div class="col-md-6">
+			<input type="text" class="form-control" placeholder="Enter OTP Code">
+
+		</div>
+		<div class="col-md-3"><button class="btn btn-primary btn-block" type="submit" name="submit_button" id="submit_button" value="confim-withdrawal">Confirm Withdrawals</button></div>
+		{% else %}
+		<button class="btn btn-primary ml-auto" type="submit" name="submit_button" id="submit_button" value="resend-otp">Initiate Bulk Withdrawal</button>
+		{% endif %}
+		
+	</div>
+	<br> -->
+	<div class="row">
+		<div class="container">
+			
+	<table class="table">
+		<thead>
+
+			<th scope="col">#</th>
+			<th scope="col">User Email</th>
+			<th scope="col">Amount</th>
+			<th scope="col">Action</th>
+			
+		</thead>
+		<tbody>
+
+		{% for tlog in trlogs.items %}
+			<tr scope="row">
+				<td>{{ loop.index }}</td>
+				<td>{{ tlog.get_user().email }}</td>
+				<td>{{  tlog.get_amount() }}</td>
+				<td>
+
+				<form action="{{url_for('dashboard.confirm_withdrawals')}}" method="post" style="width:98%;">
+				<input type="hidden" name="trlog" value="{{tlog.code}}">
+				{% if (trlog == tlog.code) and
+				(submit_button == 'resent-otp') %}
+<!-- 				<div class="form-row">
+					<input type="text" class="form-control" name='otp_code' placeholder="Enter OTP Code Here" required>
+				</div>
+				<div class="form-row"  style="margin-top:5%;">
+					<button class="btn btn-primary col-md-4 ml-auto" name="submit_button" placeholder="Enter OTP Here" value='submit-otp'>Submit OTP</button>
+				</div> -->
+				{% else %}
+				<div class="form-row">
+					<button class="btn btn-warning ml-auto" name="submit_button" value='resend-otp'>Send OTP</button>
+				</div>
+				{% endif %}
+
+
+			</form></td>
+			</tr>
+		{% endfor %}
+	
+		</tbody>
+	</table>
+
+		</div>
+
+	</div>
+
+
+
+ 
+
+
+</div>
+
+{% else %}
+
+<div class="col-md-9">
+	<form action="" method="post">
+		
+	<div class="row">
+		
+		{% if submit_button == 'resent-otp' %}
+		<div class="col-md-3"><div class="col-md-3"><button class="btn btn-danger" href="{{ url_for('dashboard.confirm_withdrawals')}}">Cancel</button></div></div>
+		<div class="col-md-6">
+			<input type="text" class="form-control" placeholder="Enter OTP Code">
+
+		</div>
+		<div class="col-md-3"><button class="btn btn-primary btn-block" type="submit" name="submit_button" id="submit_button" value="confim-withdrawal">Confirm Withdrawals</button></div>
+		{% else %}
+		<button class="btn btn-primary ml-auto" type="submit" name="submit_button" id="submit_button" value="resend-otp">Confirm Withdrawals</button>
+		{% endif %}
+		
+	</div>
+	<br>
+	<div class="row">
+		<div class="container">
+			
+	<table class="table">
+		<thead>
+			{% if submit_button == None %}
+			<th scope="col"><input type="checkbox" class="withdrawal-list-master"></th>
+			{% endif %}
+			<th scope="col">User Email</th>
+			<th scope="col">Amount</th>
+<!-- 			<th scope="col">Request Code</th>
+			<th scope="col">Submit Code</th> -->
+		</thead>
+		<tbody>
+
+		{% for tlog in trlogs.items %}
+			<tr scope="row">
+				{% if submit_button == None %}
+				<td><input type="checkbox" class="withdrawal-list-child" name="withdrawals" value="{{tlog.code}}"></td>
+				{% endif %}
+				<td>{{ tlog.user_id }}</td>
+				<td>{{  tlog.get_amount() }}</td>
+<!-- 				<td>
+					<form action="">
+					<button class="btn btn-warning" name="resend_button" value='resend-otp'>Resend OTP</button>
+				</form></td>
+				<td><form action="{{url_for('dashboard.otp_setting')}}" method="post" style="width:98%;">
+				<div class="row">
+					<label for="otp" class="text-right">								OTP
+					</label>
+					<input type="text" class="form-control" name='otp-code'  required>
+				</div>
+
+
+				<div class="form-row"  style="margin-top:5%;">
+
+
+
+					<button class="btn btn-primary col-md-4 ml-auto" name="submit_button" placeholder="Enter OTP Here" value='submit-otp'>Submit OTP</button>
+				</div>
+
+			</form></td> -->
+			</tr>
+		{% endfor %}
+	
+		</tbody>
+	</table>
+
+		</div>
+
+	</div>
+
+
+
+ 
+
+
+</div>
+
+
+{% endif %}
+
+{% endblock %}
+
+
+{% block extra_js %}
+<script>
+
+$('.withdrawal-list-master').on('click', function(){
+	$('.withdrawal-list-child').not(this).prop('checked', this.checked);
+});
+
+</script>
+{% endblock %}
+
+
+
+
+
+

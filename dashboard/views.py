@@ -7,7 +7,7 @@ import miniwalletapp as app
 from miniwalletapp.config import PAYSTACK_SECRET_KEY as srk
 from miniwalletapp.models import User, TransactionLog, BankAccount
 
-from .utils import init_transaction, verify_hook
+from .utils import init_transaction, verify_hook, resend_otp, finalize_withdrawal
 from .forms import BankForm
 from . import dashboard as dbp
 from ..models import BankAccount, Bank, OTPLog
@@ -44,7 +44,7 @@ def withdrawal():
 				if current_user.balance >  amount:
 					withdrawal = current_user.withdraw(amount)
 					if withdrawal['status']:
-						flash('Your withdrawal was successful, Your acccunt will be credited shortly')
+						flash('Your withdrawal was successful, Your acccount will be credited shortly')
 					else:
 						flash(withdrawal['message'])
 					return redirect(url_for('dashboard.dashboard'))
@@ -75,7 +75,8 @@ def deposit():
 				if trlog.marked:
 					flash("You deposit has been completed successfully")
 					data['url'] = url_for('dashboard.dashboard')
-					return Response(json.dumps(data), mimetype='application/json', status=201)
+					do_json = request.args.get('json', False)
+					if do_json:return Response(json.dumps(data), mimetype='application/json', status=201)
 			else:
 				flash("Opps! something went wrong with your transaction reference")
 	elif (request.method == 'POST'):
@@ -197,7 +198,69 @@ def otp_setting():
 				message = OTPLog.disable_otp(code = int(request.form['otp-code']))
 				flash(message)
 				mode = OTPLog.get_mode()
-
-
-	
 	return render_template("otp_setting.html", otpstatus = mode, title="OTP Settings", otplogs = otplogs)
+
+
+@dbp.route('/withdrawal_setting/', methods=['GET', 'POST'])
+def confirm_withdrawals():
+	data = {}
+	otp_mode = True #OTPLog.get_mode()
+	trlogs = TransactionLog.query.filter_by(marked=False, transaction_type=False).order_by(TransactionLog.timestamp.desc()).paginate(1,10,error_out=False)
+
+	submit_button = None
+	trlog = None
+	if request.method == 'POST':
+		# withdrawals = request.form.getlist('withdrawals', None)
+		# print('Request.forms is', request.form, file=sys.stderr)
+		trlog = request.form.get('trlog', None)
+		submit_button = request.form.get('submit_button', None)
+		if submit_button == 'resend-otp':
+			if trlog:
+				response = resend_otp(trlog)
+				print('response is', response, file=sys.stderr)
+				submit_button =  'resent-otp'
+				flash(response['message'])
+			else:
+				flash("Oops! something went wrong, pleae select a valid withdrawal")
+
+		elif  submit_button == 'confim-withdrawal':
+			pass
+		elif  submit_button == 'submit-otp':
+			otp_code = request.form.get('otp_code', None)
+
+			if otp_code:
+				# trlog_item = trlog.query.filter_by(code=trlog)
+				# response = trlog_item.confirm_withdrawal(otp_code)
+				response = finalize_withdrawal(trlog, int(otp_code))
+				if response:
+					flash(response['message'])
+				else:
+					flash('an error occured!')
+			submit_button = None
+
+	# otplogs = OTPLog.query.order_by(OTPLog.timestamp.desc()).paginate(1,10,error_out=False)
+	# mode = OTPLog.get_mode()
+	# if request.method == 'POST':
+	# 	logging.error('submit_button is', request.form['submit_button'])
+	# 	if request.form['submit_button'] == 'disable-otp':
+	# 		message = OTPLog.disable_otp()
+	# 		flash(message)
+
+	# 	elif request.form['submit_button'] == 'enable-otp':
+	# 		message = OTPLog.enable_otp()
+	# 		flash(message)
+	# 		mode = OTPLog.get_mode()
+
+	# 	elif request.form['submit_button'] == 'submit-otp':
+	# 		if int(request.form['otp-code']):
+	# 			message = OTPLog.disable_otp(code = int(request.form['otp-code']))
+	# 			flash(message)
+	# 			mode = OTPLog.get_mode()
+
+
+	return render_template("confirm_withdrawal.html",
+		title="Withdrawal Settings",
+		trlogs = trlogs, 
+		otp_mode = otp_mode,
+		trlog = trlog,
+		submit_button=submit_button)

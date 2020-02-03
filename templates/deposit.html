@@ -171,8 +171,9 @@ $('body').bind('change', function(){
 
 			console.log(event);
 			verifyPayment();
-			if (confirm('Are you sure you want to leave this page?')) {
-			    location.reload();
+			if (confirm('Are you sure you want to confirm your transaction?')) {
+				url = "{{ url_for('dashboard.deposit')}}?ref=" + refcode
+			    window.location.href = "{{ url_for('dashboard.deposit')}}?ref=" + refcode
 				
 				} else {
 

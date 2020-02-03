@@ -24,7 +24,10 @@ def gen_refcode():
 
 
 
-
+class Transfer(Transfer):
+  @classmethod
+  def resend_otp(cls, **kwargs):
+    return cls().requests.post('transfer/resend_otp', data=kwargs)
 
 
 
@@ -62,3 +65,53 @@ def verify_hook(request):
   logging.info('failed hmac test')
   return True
   # return True
+
+
+def initiate_bulk_withdrawals(trlist):
+  transfers = [{"amount": trlog.amount, "recipient": trlog.get_recipient_code()} for trlog in trlist ]
+  response = Transfer.initiate_bulk_transfer(
+          currency="TRF_2x5j67tnnw1t98k",
+          source="928783",
+          transfers=[
+              {
+                  "amount": 50000,
+                  "recipient": "RCP_db342dvqvz9qcrn"
+              },
+              {
+                  "amount": 50000,
+                  "recipient": "RCP_db342dvqvz9qcrn"
+              }
+          ]
+      )
+
+
+def resend_otp(ref_code):
+    #   Resend OTP for Transfer
+    # Generates a new OTP and sends to customer in the event they are having trouble receiving one.
+
+     
+    #  Try It
+    # BODY PARAMS
+
+    # transfer_code*
+    # string
+    # Transfer code
+
+    # reason*
+    # string
+    # either resend_otp or transfer
+    # curl https://api.paystack.co/transfer/resend_otp \
+    # -H "Authorization: Bearer SECRET_KEY" \
+    # -H "Content-Type: application/json" \
+    # -d '{"transfer_code": "TRF_vsyqdmlzble3uii"}' \
+    # -X POST
+
+    import requests
+    response =  requests.post("https://api.paystack.co/transfer/resend_otp",
+      json={'reference': ref_code, "reason":'transfer'},
+      headers={'Authorization': "Bearer %s" % paystack_secret_key, "Content-Type": "application/json"})
+    return response.json()
+  # return Transfer.resend_otp(reference=ref_code, reason='transfer')
+
+def finalize_withdrawal(ref_code, otp):
+  return Transfer.finalize(reference=ref_code, otp=otp)

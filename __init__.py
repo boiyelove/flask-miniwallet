@@ -40,6 +40,7 @@ db = SQLAlchemy()
 
 def create_app(config_name):
 	app = Flask(__name__, template_folder='templates')
+	app.config['SEND_FILE_MAX_AGE_DEFAULT'] = 0
 	app.config.from_object(app_config[config_name])
 	app.config.from_pyfile('config.py')
 	

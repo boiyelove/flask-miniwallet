@@ -80,7 +80,6 @@ class User(UserMixin, db.Model):
 
 
 	def set_password(self, password):
-
 		self.password_hash = generate_password_hash(password)
 	
 
@@ -90,15 +89,27 @@ class User(UserMixin, db.Model):
 	def __repr__(self):
 		return "%s %s".format(self.first_name, self.last_name)
 
-	def validate_bank_account(self):
-		bnkacc = BankAccount.query.filter_by(user=self).first()
-		if bnkacc:
-			if bnkacc.bank_id and bnkacc.account_name and bnkacc.account_number:
+	def validate_bank_account(self, bank_account=None):
+		if not bank_account:
+			bank_account = self.get_bank_account()
+		if bank_account:
+			if bank_account.bank_id and bank_account.account_name and bank_account.account_number:
 				return True
 		return False
 
 	def get_bank_account(self):
 		return BankAccount.query.filter_by(user=self).first()
+
+	def get_recipient_code(self):
+		bnk_acc = self.get_bankaccount()
+		if self.validate_bank_account(bank_account = bnk_acc):
+			if bnk_acc.recipient_code:
+				return bnk_acc.recipient_code
+			else:
+				bnk_acc.create_recipient()
+				db.session.refresh(bnk_acc)
+				if bnk_acc.recipient_code: return bnk_recipient_code
+		return False
 
 	@login_manager.user_loader
 	def load_user(user_id):
@@ -122,25 +133,33 @@ class User(UserMixin, db.Model):
 
 				# if transfer was initiated successfully
 				if response['status']:
+					#create transaction log
 					trf = TransactionLog(
 					user_id = self.id,
 					transaction_type = False,
 					amount = amount * 100,
 					code = response['data']['transfer_code']
 					)
+
 					db.session.add(trf)
 					db.session.commit()
-					trf = trf.remit_pay()
-					response =  Transfer.finalize(
-						transfer_code = response['data']['transfer_code'])
-					logging.error('YXE response after transfer is ', response)
-					logging.error('response status ', response['status'])
+					trf.remit_pay()
+					# trf = trf.remit_pay()
+					# response =  Transfer.finalize(
+					# 	transfer_code = response['data']['transfer_code'])
+					# logging.error('YXE response after transfer is ', response)
+					# logging.error('response status ', response['status'])
+					response['message'] = "Your withdrawal has been logged, you will be credite with 24 hours"
 				reply['status'] = response['status']
 				reply['message'] = response['message']
 			else:
 				reply = rcode_reply
 
 		return reply
+
+
+
+
 
 
 
@@ -159,11 +178,14 @@ class TransactionLog(db.Model):
 
 	def __repr__(self):
 		if self.transaction_type == True and self.marked:
-			return "Deposit:   &#8358 %s" % self.amount
+			return "Deposit:   &#8358 %s" % self.get_amount()
 		elif self.transaction_type == False and self.marked:
-			return "Withdrawal:   &#8358 %s" % self.amount
+			return "Withdrawal:   &#8358 %s" % self.get_amount()
 		else:
 			return self
+
+	def __str__(self):
+		return self.__repr__()
 
 	def check_transaction(self):
 		if self.transaction_type == False:
@@ -210,7 +232,32 @@ class TransactionLog(db.Model):
 	def get_amount(self):
 		return (self.amount / 100)
 
-		
+	def confirm_withdrawal(self, code=None):
+		if code:
+			if type(code) is not int:raise TypeError('The code must be Integer value')
+			# Use code to confirm withdrawal
+		else:
+			# trf = trf.remit_pay()
+			response =  Transfer.finalize(
+				transfer_code = self.code,
+				otp = "%s" % code)
+			if response['status']:
+				return response
+			logging.error('YXE response after transfer is ', response)
+			logging.error('response status ', response['status'])
+		return False
+			# retrieve code
+			# https://api.paystack.co/transfer/resend_otp
+			# transfer_code* string - Transfer code
+			# reason* string - either resend_otp or transfer
+			# return code
+
+	def get_user(self):
+		return User.query.get(self.user_id)
+
+	def get_recipient(self):
+		user = self.get_user()
+		return user.get_recipient_code()
 
 class BankAccount(db.Model):
 
@@ -226,7 +273,6 @@ class BankAccount(db.Model):
 	recipient_code = db.Column(db.String(60), default=None)
 
 	def create_recipient(self):
-		
 		bnk = Bank.query.filter_by(id=self.bank_id).first()
 		response = TransferRecipient.create(
 			type="nuban",
@@ -243,8 +289,6 @@ class BankAccount(db.Model):
 			self.recipient_code = response['data']['recipient_code']
 			reply['recipient_code']  = response['data']['recipient_code']
 			db.session.commit()
-			
-
 		return reply
 
 
@@ -289,8 +333,8 @@ class OTPLog(db.Model):
 			url = 'https://api.paystack.co/transfer/disable_otp_finalize'
 		resp = requests.post(url, json=code, headers={'Authorization': 'Bearer ' +  paystack_secret_key,
 			'Content-Type': 'application/json'})
-		logging.error('text is', resp.text)
-		logging.error('status_code is', resp.status_code)
+		# logging.error('text is', resp.text)
+		# logging.error('status_code is', resp.status_code)
 		if resp.status_code == 200:
 			resp = resp.json()
 			mode = OTPLog.get_mode()
