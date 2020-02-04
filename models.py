@@ -6,6 +6,7 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from paystackapi.paystack import Transfer
 from paystackapi.trecipient import TransferRecipient
 from paystackapi.transaction import Transaction
+from sqlalchemy.orm import column_property
 from miniwalletapp import db, login_manager
 from miniwalletapp.config import PAYSTACK_SECRET_KEY as paystack_secret_key
 
@@ -122,38 +123,46 @@ class User(UserMixin, db.Model):
 			bankacc = BankAccount.query.filter_by(user_id=self.id).first()
 			rcode_reply = bankacc.create_recipient()
 
-			# if paystack recipient was created successfully
-			if rcode_reply['status']:
-				response = Transfer.initiate(
-					source='balance',
-					reason = 'User %s Withdrawal: %s' % (self.id, self.email),
-					amount = amount * 100,
-					recipient = rcode_reply['recipient_code'])
-				logging.error('response is', response)
+			self.balance = self.balance - amount
+			wreq = WithdrawalRequest(amount = amount * 100,
+				user_id = self.id)
+			db.session.add(wreq)
+			db.session.commit()
 
-				# if transfer was initiated successfully
-				if response['status']:
-					#create transaction log
-					trf = TransactionLog(
-					user_id = self.id,
-					transaction_type = False,
-					amount = amount * 100,
-					code = response['data']['transfer_code']
-					)
+			reply={'status': True, 'message': "Withdrawal requested successfully"}
 
-					db.session.add(trf)
-					db.session.commit()
-					trf.remit_pay()
-					# trf = trf.remit_pay()
-					# response =  Transfer.finalize(
-					# 	transfer_code = response['data']['transfer_code'])
-					# logging.error('YXE response after transfer is ', response)
-					# logging.error('response status ', response['status'])
-					response['message'] = "Your withdrawal has been logged, you will be credite with 24 hours"
-				reply['status'] = response['status']
-				reply['message'] = response['message']
-			else:
-				reply = rcode_reply
+			# # if paystack recipient was created successfully
+			# if rcode_reply['status']:
+			# 	response = Transfer.initiate(
+			# 		source='balance',
+			# 		reason = 'User %s Withdrawal: %s' % (self.id, self.email),
+			# 		amount = amount * 100,
+			# 		recipient = rcode_reply['recipient_code'])
+			# 	logging.error('response is', response)
+
+			# 	# if transfer was initiated successfully
+			# 	if response['status']:
+			# 		#create transaction log
+			# 		trf = TransactionLog(
+			# 		user_id = self.id,
+			# 		transaction_type = False,
+			# 		amount = amount * 100,
+			# 		code = response['data']['transfer_code']
+			# 		)
+
+			# 		db.session.add(trf)
+			# 		db.session.commit()
+			# 		trf.remit_pay()
+			# 		# trf = trf.remit_pay()
+			# 		# response =  Transfer.finalize(
+			# 		# 	transfer_code = response['data']['transfer_code'])
+			# 		# logging.error('YXE response after transfer is ', response)
+			# 		# logging.error('response status ', response['status'])
+			# 		response['message'] = "Your withdrawal has been logged, you will be reviewed by admin"
+			# 	reply['status'] = response['status']
+			# 	reply['message'] = response['message']
+			# else:
+			# 	reply = rcode_reply
 
 		return reply
 
@@ -200,6 +209,7 @@ class TransactionLog(db.Model):
 					return True
 		#parse check data to give result, true, false, pending
 		return False
+
 
 	def remit_pay(self):
 		if not self.marked:
@@ -258,6 +268,76 @@ class TransactionLog(db.Model):
 	def get_recipient(self):
 		user = self.get_user()
 		return user.get_recipient_code()
+
+
+
+class WithdrawalRequest(db.Model):
+	__tablename__ = 'withdrawalrequests'
+
+	id = db.Column(db.Integer, primary_key=True)
+	user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+	amount = db.Column(db.Integer, default=0)
+	code = column_property('withdrawal' + id)
+	treated = db.Column(db.Boolean, default=False)
+	timestamp = db.Column(db.DateTime, index=True, default=datetime.utcnow)
+
+
+	def deny(self):
+		user = User.query.get(self.user_id)
+		user.balance = user.balance + (self.amount / 100)
+		db.session.delete(self)
+		db.session.commit()
+		return True
+
+
+	def set_amount(self, amount):
+		self.amount = amount * 100
+		return self.amount
+
+	def get_amount(self):
+		return (self.amount / 100)
+
+	def accept(self):
+		reply={'status': False, 'message': "An error occured from withdrawal"}
+
+		bankacc = BankAccount.query.filter_by(user_id=self.id).first()
+		rcode_reply = bankacc.create_recipient()
+		#if user has the right amount
+		response = Transfer.initiate(
+			source='balance',
+			reason = 'User %s Withdrawal: %s' % (self.id, self.get_user().email),
+			amount = self.amount,
+			recipient = rcode_reply['recipient_code'])
+		# logging.error('response is', response)
+
+		# if transfer was initiated successfully
+		if response['status']:
+			#create transaction log
+			trf = TransactionLog(
+			user_id = self.id,
+			transaction_type = False,
+			amount = self.amount,
+			code = response['data']['transfer_code']
+			)
+
+			db.session.add(trf)
+			db.session.commit()
+
+			if not OTPLog.get_mode():
+				response =  Transfer.finalize(
+					transfer_code = response['data']['transfer_code'])
+			logging.error('YXE response after transfer is ', response)
+			logging.error('response status ', response['status'])
+			if response['status']:
+				db.session.delete(self)
+				db.session.commit()
+			# response['message'] = "Your withdrawal has been logged, you will be reviewed by admin"
+		reply['status'] = response['status']
+		reply['message'] = response['message']
+		return reply
+
+	def get_user(self):
+		return User.query.get(self.user_id)
 
 class BankAccount(db.Model):
 

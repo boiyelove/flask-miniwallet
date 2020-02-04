@@ -5,7 +5,7 @@ from flask import render_template, abort, request, Response, redirect, flash, ur
 from flask_login import login_required, current_user
 import miniwalletapp as app
 from miniwalletapp.config import PAYSTACK_SECRET_KEY as srk
-from miniwalletapp.models import User, TransactionLog, BankAccount
+from miniwalletapp.models import User, TransactionLog, BankAccount, WithdrawalRequest
 
 from .utils import init_transaction, verify_hook, resend_otp, finalize_withdrawal
 from .forms import BankForm
@@ -205,8 +205,6 @@ def otp_setting():
 def confirm_withdrawals():
 	data = {}
 	otp_mode = True #OTPLog.get_mode()
-	trlogs = TransactionLog.query.filter_by(marked=False, transaction_type=False).order_by(TransactionLog.timestamp.desc()).paginate(1,10,error_out=False)
-
 	submit_button = None
 	trlog = None
 	if request.method == 'POST':
@@ -214,29 +212,39 @@ def confirm_withdrawals():
 		# print('Request.forms is', request.form, file=sys.stderr)
 		trlog = request.form.get('trlog', None)
 		submit_button = request.form.get('submit_button', None)
-		if submit_button == 'resend-otp':
-			if trlog:
-				response = resend_otp(trlog)
-				print('response is', response, file=sys.stderr)
-				submit_button =  'resent-otp'
+		# if submit_button == 'resend-otp':
+		# 	if trlog:
+		# 		response = resend_otp(trlog)
+		# 		print('response is', response, file=sys.stderr)
+		# 		submit_button =  'resent-otp'
+		# 		flash(response['message'])
+		# 	else:
+		# 		flash("Oops! something went wrong, pleae select a valid withdrawal")
+		if trlog:
+			wreq = WithdrawalRequest.query.filter_by(id=trlog).first()
+
+			if  submit_button == 'confim-withdrawal':
+				response = wreq.accept()
 				flash(response['message'])
-			else:
-				flash("Oops! something went wrong, pleae select a valid withdrawal")
-
-		elif  submit_button == 'confim-withdrawal':
-			pass
-		elif  submit_button == 'submit-otp':
-			otp_code = request.form.get('otp_code', None)
-
-			if otp_code:
-				# trlog_item = trlog.query.filter_by(code=trlog)
-				# response = trlog_item.confirm_withdrawal(otp_code)
-				response = finalize_withdrawal(trlog, int(otp_code))
-				if response:
-					flash(response['message'])
+			elif  submit_button == 'deny-withdrawal':
+				print('wreq is ', wreq, file=sys.stderr)
+				if wreq.deny():
+					flash("The withdrawal has been denied and the funds credited back to user's balance")
 				else:
-					flash('an error occured!')
-			submit_button = None
+					flash('Oops! an error occured')
+
+		# elif  submit_button == 'submit-otp':
+		# 	otp_code = request.form.get('otp_code', None)
+
+		# 	if otp_code:
+		# 		# trlog_item = trlog.query.filter_by(code=trlog)
+		# 		# response = trlog_item.confirm_withdrawal(otp_code)
+		# 		response = finalize_withdrawal(trlog, int(otp_code))
+		# 		if response:
+		# 			flash(response['message'])
+		# 		else:
+		# 			flash('an error occured!')
+		# 	submit_button = None
 
 	# otplogs = OTPLog.query.order_by(OTPLog.timestamp.desc()).paginate(1,10,error_out=False)
 	# mode = OTPLog.get_mode()
@@ -256,7 +264,8 @@ def confirm_withdrawals():
 	# 			message = OTPLog.disable_otp(code = int(request.form['otp-code']))
 	# 			flash(message)
 	# 			mode = OTPLog.get_mode()
-
+	trlogs = WithdrawalRequest.query.all()
+	print('Withdrawal requests is', trlogs, file=sys.stderr)
 
 	return render_template("confirm_withdrawal.html",
 		title="Withdrawal Settings",

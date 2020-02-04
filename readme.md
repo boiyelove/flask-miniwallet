@@ -19,6 +19,7 @@ Flask setup from windows commandline
 ```winbatch
 FLASK_APP = run.py
 FLASK_CONFIG = development
+FLASK_ENV = development
 ```
 
 Database setup
