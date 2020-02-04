@@ -1,3 +1,4 @@
+import sys
 import logging
 import requests
 from datetime import datetime
@@ -300,7 +301,7 @@ class WithdrawalRequest(db.Model):
 	def accept(self):
 		reply={'status': False, 'message': "An error occured from withdrawal"}
 
-		bankacc = BankAccount.query.filter_by(user_id=self.id).first()
+		bankacc = BankAccount.query.get(self.user_id)
 		rcode_reply = bankacc.create_recipient()
 		#if user has the right amount
 		response = Transfer.initiate(
@@ -328,9 +329,10 @@ class WithdrawalRequest(db.Model):
 					transfer_code = response['data']['transfer_code'])
 			logging.error('YXE response after transfer is ', response)
 			logging.error('response status ', response['status'])
-			if response['status']:
-				db.session.delete(self)
-				db.session.commit()
+			print('response is ', response, file=sys.stderr)
+			# if response['status']:
+			db.session.delete(self)
+			db.session.commit()
 			# response['message'] = "Your withdrawal has been logged, you will be reviewed by admin"
 		reply['status'] = response['status']
 		reply['message'] = response['message']

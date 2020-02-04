@@ -232,7 +232,7 @@ def confirm_withdrawals():
 					flash("The withdrawal has been denied and the funds credited back to user's balance")
 				else:
 					flash('Oops! an error occured')
-
+		return redirect(url_for('dashboard.confirm_withdrawals'))
 		# elif  submit_button == 'submit-otp':
 		# 	otp_code = request.form.get('otp_code', None)
 
