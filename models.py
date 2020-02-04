@@ -300,42 +300,51 @@ class WithdrawalRequest(db.Model):
 
 	def accept(self):
 		reply={'status': False, 'message': "An error occured from withdrawal"}
-
+		rcode = None
 		bankacc = BankAccount.query.get(self.user_id)
-		rcode_reply = bankacc.create_recipient()
-		#if user has the right amount
-		response = Transfer.initiate(
-			source='balance',
-			reason = 'User %s Withdrawal: %s' % (self.id, self.get_user().email),
-			amount = self.amount,
-			recipient = rcode_reply['recipient_code'])
-		# logging.error('response is', response)
+		if bankacc.recipient_code:
+			rcode = bankacc.recipient_code
+		else:
+			rcode_reply = bankacc.create_recipient()
+			if rcode_reply['status']:
+				rcode = rcode_reply['recipient_code']
+			else:
+				reply['message'] = rcode_reply['message']
 
-		# if transfer was initiated successfully
-		if response['status']:
-			#create transaction log
-			trf = TransactionLog(
-			user_id = self.id,
-			transaction_type = False,
-			amount = self.amount,
-			code = response['data']['transfer_code']
-			)
+		if rcode:
+			#if user has the right amount
+			response = Transfer.initiate(
+				source='balance',
+				reason = 'User %s Withdrawal: %s' % (self.id, self.get_user().email),
+				amount = self.amount,
+				recipient = rcode)
+			# logging.error('response is', response)
 
-			db.session.add(trf)
-			db.session.commit()
+			# if transfer was initiated successfully
+			if response['status']:
+				#create transaction log
+				trf = TransactionLog(
+				user_id = self.id,
+				transaction_type = False,
+				amount = self.amount,
+				code = response['data']['transfer_code']
+				)
 
-			if not OTPLog.get_mode():
-				response =  Transfer.finalize(
-					transfer_code = response['data']['transfer_code'])
-			logging.error('YXE response after transfer is ', response)
-			logging.error('response status ', response['status'])
-			print('response is ', response, file=sys.stderr)
-			# if response['status']:
-			db.session.delete(self)
-			db.session.commit()
-			# response['message'] = "Your withdrawal has been logged, you will be reviewed by admin"
-		reply['status'] = response['status']
-		reply['message'] = response['message']
+				db.session.add(trf)
+				db.session.commit()
+
+				if not OTPLog.get_mode():
+					response =  Transfer.finalize(
+						transfer_code = response['data']['transfer_code'])
+				logging.error('YXE response after transfer is ', response)
+				logging.error('response status ', response['status'])
+				print('response is ', response, file=sys.stderr)
+				# if response['status']:
+				db.session.delete(self)
+				db.session.commit()
+				# response['message'] = "Your withdrawal has been logged, you will be reviewed by admin"
+			reply['status'] = response['status']
+			reply['message'] = response['message']
 		return reply
 
 	def get_user(self):
