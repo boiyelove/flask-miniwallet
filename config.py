@@ -38,5 +38,5 @@ app_config = {
 
 }
 
-PAYSTACK_PUBLIC_KEY = 'pk_test_af15f1a5a947bf98e44d2ebaf0c83e9aae03a97c'
-PAYSTACK_SECRET_KEY = "sk_test_c5ef3fb760da4fc6c145d888b26b945fa93b993a"
+PAYSTACK_PUBLIC_KEY = "..."
+PAYSTACK_SECRET_KEY = "..."
